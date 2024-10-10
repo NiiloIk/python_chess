@@ -5,7 +5,7 @@ CELL_SIZE = 80
 
 class Chess():
     def __init__(self, canvas, cell_size):
-        self.game = logic.game_at_start
+        self.game = logic.game
         self.player_turn = "White"
         self.selected_square = (-1, -1) 
         self.allowed_moves = []
@@ -13,6 +13,7 @@ class Chess():
         self.cell_size = cell_size
         self.rows = len(self.game)
         self.cols = len(self.game[0])
+        self.checkmate = False
         
         self.images = self.load_images()
         self.canvas.pack()
@@ -52,6 +53,16 @@ class Chess():
                 if self.allowed_moves and self.allowed_moves.count((row, col)):
                     i = 16
                     self.canvas.create_oval(x1+i, y1+i, x2-i, y2-i, fill="#887")
+        if self.checkmate:
+            print("Checkmate")
+            x1 = self.cell_size * 2
+            y1 = self.cell_size * 3
+            x2 = self.cell_size * 6
+            y2 = self.cell_size * 5
+            text_x = self.cell_size * 4
+            text_y = self.cell_size * 4
+            self.canvas.create_rectangle(x1, y1, x2, y2, fill="#555", outline="black")
+            self.canvas.create_text(text_x, text_y, text="checkmate", fill="black", font=('Helvetica 20 bold'))
 
     def get_color(self, row, col):
         if self.selected_square[0] == row and self.selected_square[1] == col:
@@ -83,8 +94,13 @@ class Chess():
         last_selected = self.selected_square
         former_piece = self.game[last_selected[0]][last_selected[1]] if last_selected[0] >= 0 else None # Return the value of former selected piece. 
         selected_piece = self.game[row][col]
-
-        if self.selected_square == (row, col):
+        if self.checkmate:
+            self.game = logic.init_new_game()
+            self.checkmate = False
+            self.selected_square = (-1, -1) 
+            self.allowed_moves = []
+            self.player_turn = "White"
+        elif self.selected_square == (row, col):
             self.selected_square = (-1, -1)
             self.allowed_moves = []
         elif logic.valid_for_player(player, selected_piece): # Get valid moves for a given piece
@@ -96,6 +112,8 @@ class Chess():
                 # Move the piece to new position
                 from_x, from_y = last_selected[0], last_selected[1]
                 self.game = logic.move_piece(from_x, from_y, row, col, self.game)
+                if logic.check_for_checkmate(self.game, player):
+                    self.checkmate = True
 
                 # Change the player after a move
                 self.player_turn = "White" if player == "Black" else "Black"
@@ -105,8 +123,6 @@ class Chess():
 
         # Draw board after click
         self.draw_board()
-
-
 
 
 def init_game():
@@ -119,7 +135,7 @@ def init_game():
 
     canvas = tk.Canvas(root, width=CELL_SIZE * len(logic.game[0]), height=CELL_SIZE * len(logic.game[0]))
 
-    # Create the Maze
+    # init the chess game
     app = Chess(canvas, CELL_SIZE)
 
     root.mainloop()
